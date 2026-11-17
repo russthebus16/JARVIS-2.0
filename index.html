@@ -1,0 +1,672 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>J.A.R.V.I.S. | Personal AI</title>
+<style>
+:root {
+ --bg:#050b14;--panel:#0d1928;--panel2:#101f30;
+ --accent:#38cfff;--text:#eaf7ff;--muted:#8ba5b8;
+ --line:#20394d;--glow:#38cfff44;
+}
+*{box-sizing:border-box}
+body{
+ margin:0;background:var(--bg);color:var(--text);
+ font-family:Arial,sans-serif;min-height:100vh;
+}
+button,input,select,textarea{font:inherit}
+button{
+ cursor:pointer;border:1px solid var(--accent);
+ background:var(--accent);color:#04101a;
+ padding:11px 15px;border-radius:8px;font-weight:bold;
+}
+button.secondary{background:transparent;color:var(--accent)}
+button.danger{border-color:#bd6262;color:#ff9c9c;background:transparent}
+button:disabled{opacity:.4;cursor:not-allowed}
+input,select,textarea{
+ width:100%;background:#07121f;color:var(--text);
+ border:1px solid var(--line);padding:12px;border-radius:8px;
+}
+input[type=color]{height:45px;padding:4px}
+input[type=checkbox]{width:auto;accent-color:var(--accent)}
+label{display:block;color:var(--muted);font-size:13px;margin:10px 0 6px}
+header{
+ display:flex;justify-content:space-between;align-items:center;
+ padding:18px 22px;border-bottom:1px solid var(--line);
+ background:#07111d;
+}
+.logo{font-size:21px;font-weight:bold;letter-spacing:5px;color:var(--accent)}
+.status{font-size:11px;color:#65e9bd}
+main{max-width:1150px;margin:auto;padding:24px 16px}
+h1{font-size:25px;letter-spacing:2px}
+h2{font-size:13px;letter-spacing:2px;color:var(--accent)}
+p{line-height:1.55;color:var(--muted)}
+.small{font-size:12px;color:var(--muted)}
+.panel{
+ background:var(--panel);border:1px solid var(--line);
+ border-radius:12px;padding:18px;
+}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field{margin:15px 0}
+.choice{
+ display:flex;align-items:center;gap:10px;padding:12px;
+ border:1px solid var(--line);border-radius:9px;
+ background:#091522;margin:8px 0;cursor:pointer;
+}
+.choice:has(input:checked){border-color:var(--accent);background:#123044}
+.choice input{width:auto}
+.setup{max-width:850px;margin:35px auto}
+.stepbar{display:flex;gap:6px;margin:22px 0}
+.stepdot{height:5px;flex:1;background:var(--line);border-radius:8px}
+.stepdot.active{background:var(--accent);box-shadow:0 0 12px var(--glow)}
+.step{display:none}
+.step.active{display:block}
+.actions{display:flex;justify-content:space-between;gap:10px;margin-top:25px}
+.preset{min-height:85px;text-align:left}
+.preset.selected{outline:2px solid var(--accent)}
+.swatch{display:inline-block;width:13px;height:13px;border-radius:50%;margin-right:5px}
+#app{display:none}
+.dashboard{display:grid;grid-template-columns:210px 1fr;gap:15px}
+nav{display:flex;flex-direction:column;gap:8px}
+nav button{text-align:left;background:transparent;color:var(--muted);border-color:transparent}
+nav button.active{background:#123044;color:var(--accent);border-color:var(--line)}
+.content{min-width:0}
+.hero{text-align:center;padding:22px}
+.reactor{
+ width:155px;height:155px;border:2px solid var(--accent);
+ border-radius:50%;margin:18px auto;display:grid;place-items:center;
+ box-shadow:0 0 35px var(--glow),inset 0 0 30px var(--glow);
+ animation:pulse 3s infinite;
+}
+.reactor span{font-size:22px;letter-spacing:3px;color:var(--accent)}
+@keyframes pulse{50%{box-shadow:0 0 55px var(--glow),inset 0 0 40px var(--glow)}}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.trackcard{padding:15px;min-height:90px}
+.trackcard strong{display:block;color:var(--accent);margin-bottom:8px}
+.chat{height:290px;overflow:auto;display:flex;flex-direction:column;gap:10px;margin:12px 0}
+.message{background:var(--panel2);padding:12px;border-radius:9px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
+.message.user{border:1px solid var(--line);margin-left:15%}
+.chatcontrols{display:flex;gap:8px}
+.chatcontrols input{min-width:0}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap}
+.section{display:none}
+.section.active{display:block}
+.checkgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:6px}
+.checkitem{display:flex;gap:9px;align-items:center;padding:9px;background:#091522;border-radius:7px}
+footer{text-align:center;padding:25px;color:var(--muted);font-size:11px}
+@media(max-width:700px){
+ .grid,.cards{grid-template-columns:1fr 1fr}
+ .dashboard{grid-template-columns:1fr}
+ nav{flex-direction:row;overflow-x:auto}
+ nav button{white-space:nowrap}
+ .two{grid-template-columns:1fr}
+ header{padding:14px}
+}
+@media(max-width:430px){
+ .cards,.grid{grid-template-columns:1fr}
+ .logo{font-size:17px}
+ .chatcontrols{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+<header>
+ <div class="logo">J.A.R.V.I.S.</div>
+ <div class="status">● PERSONAL SYSTEM</div>
+</header>
+
+<!-- FIRST-TIME SETUP -->
+<main id="setup" class="setup">
+ <div class="panel">
+  <div class="small">PERSONAL CONFIGURATION / VERSION 2.0</div>
+  <h1>INITIALIZE JARVIS</h1>
+  <p>Welcome. Let's configure your personal assistant.</p>
+  <div class="stepbar" id="stepbar">
+   <div class="stepdot active"></div><div class="stepdot"></div>
+   <div class="stepdot"></div><div class="stepdot"></div>
+   <div class="stepdot"></div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="step active">
+   <h2>01 / INTERFACE DESIGN</h2>
+   <p>Choose a starting appearance. You can customize the colors below.</p>
+   <div class="grid">
+    <button class="preset selected" onclick="preset('iron',this)">
+     <span class="swatch" style="background:#38cfff"></span>IRON MAN HUD
+     <div class="small">Blue holographic</div>
+    </button>
+    <button class="preset" onclick="preset('stealth',this)">
+     <span class="swatch" style="background:#a5a5b8"></span>STEALTH
+     <div class="small">Dark professional</div>
+    </button>
+    <button class="preset" onclick="preset('emerald',this)">
+     <span class="swatch" style="background:#58e6a5"></span>EMERALD
+     <div class="small">Dark green technology</div>
+    </button>
+   </div>
+   <div class="two">
+    <div class="field">
+     <label>Background color</label>
+     <input type="color" id="bgColor" value="#050b14">
+    </div>
+    <div class="field">
+     <label>Accent color</label>
+     <input type="color" id="accentColor" value="#38cfff">
+    </div>
+   </div>
+   <div class="field">
+    <label>Custom assistant name</label>
+    <input id="assistantName" value="J.A.R.V.I.S." maxlength="30">
+   </div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step">
+   <h2>02 / VOICE & PERSONALITY</h2>
+   <p>Choose how your assistant sounds and communicates.</p>
+   <div class="field">
+    <label>Available browser voices</label>
+    <select id="voiceSelect">
+     <option value="">Browser default voice</option>
+    </select>
+    <p class="small">Voice choices depend on your device and installed browser voices.</p>
+   </div>
+   <div class="field">
+    <label>Speaking speed</label>
+    <select id="speed">
+     <option value="0.8">Slow and calm</option>
+     <option value="0.95" selected>Natural</option>
+     <option value="1.1">Quick</option>
+     <option value="1.25">Fast</option>
+    </select>
+   </div>
+   <div class="field">
+    <label>Personality</label>
+    <select id="personality">
+     <option>Professional and intelligent</option>
+     <option>Formal and precise</option>
+     <option>Friendly and helpful</option>
+     <option>Witty and humorous</option>
+     <option>Calm and concise</option>
+    </select>
+   </div>
+   <button class="secondary" onclick="testVoice()">▶ TEST MY VOICE</button>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step">
+   <h2>03 / WHAT SHOULD JARVIS TRACK?</h2>
+   <p>Select everything you want on your personal dashboard.</p>
+   <div class="checkgrid" id="trackingChoices"></div>
+   <div class="field">
+    <label>Add your own tracking category</label>
+    <div class="chatcontrols">
+     <input id="newCategory" placeholder="Example: Baseball cards">
+     <button onclick="addCategory()">ADD</button>
+    </div>
+   </div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="step">
+   <h2>04 / DASHBOARD CUSTOMIZATION</h2>
+   <p>Choose which panels you want to see.</p>
+   <div class="checkgrid" id="panelChoices"></div>
+   <div class="field">
+    <label>Dashboard welcome message</label>
+    <input id="welcome" value="How may I assist you today?">
+   </div>
+   <div class="field">
+    <label>Enable spoken responses</label>
+    <label class="choice"><input type="checkbox" id="speakEnabled" checked> JARVIS speaks responses aloud</label>
+   </div>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="step">
+   <h2>05 / CONFIRM CONFIGURATION</h2>
+   <p>Review your choices and initialize your assistant.</p>
+   <div class="panel" id="review"></div>
+   <p class="small">Your preferences are saved in this browser. They are not automatically synchronized between devices.</p>
+   <label class="choice"><input type="checkbox" id="confirm" checked> Save my configuration and initialize JARVIS</label>
+  </div>
+
+  <div class="actions">
+   <button class="secondary" id="back" onclick="move(-1)" disabled>BACK</button>
+   <button id="next" onclick="move(1)">NEXT STEP →</button>
+  </div>
+ </div>
+</main>
+
+<!-- MAIN DASHBOARD -->
+<div id="app">
+ <main>
+  <div class="dashboard">
+   <nav>
+    <button class="active" onclick="showSection('home',this)">⌂ OVERVIEW</button>
+    <button onclick="showSection('assistant',this)">◉ AI ASSISTANT</button>
+    <button onclick="showSection('tracking',this)">▦ TRACKING</button>
+    <button onclick="showSection('projects',this)">◇ PROJECTS</button>
+    <button onclick="showSection('settings',this)">⚙ SETTINGS</button>
+   </nav>
+
+   <div class="content">
+    <section id="home" class="section active">
+     <div class="panel hero">
+      <div class="small" id="date"></div>
+      <div class="reactor"><span>J.A.R.V.I.S.</span></div>
+      <h2 id="welcomeDisplay">HOW MAY I ASSIST YOU?</h2>
+      <div class="status">● INTERFACE ONLINE</div>
+     </div>
+     <h2>YOUR DASHBOARD</h2>
+     <div class="cards" id="dashboardCards"></div>
+    </section>
+
+    <section id="assistant" class="section">
+     <div class="panel">
+      <h2>JARVIS COMMUNICATION</h2>
+      <p id="assistantStatus">Local command system ready. Advanced AI connection not configured.</p>
+      <div class="chat" id="chat">
+       <div class="message">Good day. Your JARVIS interface is online. How may I assist you?</div>
+      </div>
+      <div class="chatcontrols">
+       <input id="command" placeholder="Enter a command...">
+       <button onclick="sendMessage()">SEND</button>
+       <button class="secondary" onclick="listen()">🎙</button>
+      </div>
+      <p class="small">Voice recognition requires browser support and microphone permission.</p>
+     </div>
+    </section>
+
+    <section id="tracking" class="section">
+     <div class="panel">
+      <h2>PERSONAL TRACKING</h2>
+      <p>Your selected categories and custom categories.</p>
+      <div class="cards" id="trackingCards"></div>
+     </div>
+    </section>
+
+    <section id="projects" class="section">
+     <div class="panel">
+      <h2>PROJECT CENTER</h2>
+      <p>Keep track of projects you want to work on.</p>
+      <div class="chatcontrols">
+       <input id="projectInput" placeholder="New project name">
+       <button onclick="addProject()">ADD</button>
+      </div>
+      <div id="projectList"></div>
+     </div>
+    </section>
+
+    <section id="settings" class="section">
+     <div class="panel">
+      <h2>PERSONAL CONFIGURATION</h2>
+      <p>Change your JARVIS setup whenever you want.</p>
+      <div class="toolbar">
+       <button onclick="editSetup()">EDIT PERSONALIZATION</button>
+       <button class="secondary" onclick="resetSetup()">RESET SETUP</button>
+      </div>
+      <p class="small">Resetting removes saved settings and returns you to the setup wizard.</p>
+     </div>
+    </section>
+   </div>
+  </div>
+ </main>
+</div>
+<footer>J.A.R.V.I.S. // PERSONAL CONTROL SYSTEM // VERSION 2.0</footer>
+
+<script>
+const categories=[
+ "Projects","Tasks","Reminders","Sports scores","Calendar",
+ "Weather","Learning","Device status","Smart home","Notes","Fitness goals"
+];
+const panels=["System status","Recent activity","Quick notes","Project overview","Voice controls","Tracking overview"];
+
+let step=0;
+let customCategories=[];
+let selectedPreset="iron";
+let config={};
+let projects=[];
+let voices=[];
+
+function loadVoices(){
+ if(!window.speechSynthesis)return;
+ voices=speechSynthesis.getVoices();
+ const select=document.getElementById("voiceSelect");
+ const previous=select.value;
+ select.innerHTML='<option value="">Browser default voice</option>';
+ voices.forEach((voice,i)=>{
+  const option=document.createElement("option");
+  option.value=String(i);
+  option.textContent=voice.name+" ("+voice.lang+")";
+  select.appendChild(option);
+ });
+ if(previous!=="")select.value=previous;
+}
+if(window.speechSynthesis){
+ loadVoices();
+ speechSynthesis.onvoiceschanged=loadVoices;
+}
+
+function preset(name,button){
+ selectedPreset=name;
+ document.querySelectorAll(".preset").forEach(b=>b.classList.remove("selected"));
+ button.classList.add("selected");
+ const themes={
+  iron:["#050b14","#38cfff"],
+  stealth:["#090a11","#a5a5b8"],
+  emerald:["#04120e","#58e6a5"]
+ };
+ document.getElementById("bgColor").value=themes[name][0];
+ document.getElementById("accentColor").value=themes[name][1];
+}
+
+function renderChoices(){
+ const track=document.getElementById("trackingChoices");
+ track.innerHTML="";
+ categories.concat(customCategories).forEach(category=>{
+  const label=document.createElement("label");
+  label.className="checkitem";
+  const box=document.createElement("input");
+  box.type="checkbox";box.checked=true;box.value=category;
+  box.className="track-option";
+  label.append(box,document.createTextNode(category));
+  track.append(label);
+ });
+ const panel=document.getElementById("panelChoices");
+ panel.innerHTML="";
+ panels.forEach(item=>{
+  const label=document.createElement("label");
+  label.className="checkitem";
+  const box=document.createElement("input");
+  box.type="checkbox";box.checked=true;box.value=item;
+  box.className="panel-option";
+  label.append(box,document.createTextNode(item));
+  panel.append(label);
+ });
+}
+renderChoices();
+
+function addCategory(){
+ const input=document.getElementById("newCategory");
+ const value=input.value.trim();
+ if(!value)return;
+ if(categories.concat(customCategories).some(x=>x.toLowerCase()===value.toLowerCase())){
+  alert("That category already exists.");return;
+ }
+ customCategories.push(value);
+ input.value="";
+ renderChoices();
+}
+
+function move(direction){
+ if(direction===1 && step===4){
+  if(!document.getElementById("confirm").checked){
+   alert("Please confirm your configuration.");return;
+  }
+  saveSetup();return;
+ }
+ step=Math.max(0,Math.min(4,step+direction));
+ updateWizard();
+}
+
+function updateWizard(){
+ document.querySelectorAll(".step").forEach((el,i)=>el.classList.toggle("active",i===step));
+ document.querySelectorAll(".stepdot").forEach((el,i)=>el.classList.toggle("active",i<=step));
+ document.getElementById("back").disabled=step===0;
+ document.getElementById("next").textContent=step===4?"INITIALIZE JARVIS":"NEXT STEP →";
+ if(step===4)makeReview();
+}
+
+function makeReview(){
+ const selected=[...document.querySelectorAll(".track-option:checked")].map(x=>x.value);
+ const chosenPanels=[...document.querySelectorAll(".panel-option:checked")].map(x=>x.value);
+ document.getElementById("review").textContent=
+  "Assistant: "+document.getElementById("assistantName").value+
+  "\nAppearance: "+selectedPreset+
+  "\nTracking: "+selected.join(", ")+
+  "\nPanels: "+chosenPanels.join(", ")+
+  "\nPersonality: "+document.getElementById("personality").value+
+  "\nVoice: "+(document.getElementById("voiceSelect").selectedOptions[0]?.textContent||"Browser default");
+}
+
+function saveSetup(){
+ config={
+  name:document.getElementById("assistantName").value.trim()||"J.A.R.V.I.S.",
+  bg:document.getElementById("bgColor").value,
+  accent:document.getElementById("accentColor").value,
+  preset:selectedPreset,
+  voice:document.getElementById("voiceSelect").value,
+  speed:document.getElementById("speed").value,
+  personality:document.getElementById("personality").value,
+  tracking:[...document.querySelectorAll(".track-option:checked")].map(x=>x.value),
+  customCategories,
+  panels:[...document.querySelectorAll(".panel-option:checked")].map(x=>x.value),
+  welcome:document.getElementById("welcome").value,
+  speak:document.getElementById("speakEnabled").checked
+ };
+ try{
+  localStorage.setItem("jarvis_config_v2",JSON.stringify(config));
+  localStorage.setItem("jarvis_projects",JSON.stringify(projects));
+ }catch(e){
+  alert("Could not save settings in this browser.");return;
+ }
+ applyConfig();
+}
+
+function applyConfig(){
+ document.documentElement.style.setProperty("--bg",config.bg);
+ document.documentElement.style.setProperty("--accent",config.accent);
+ document.documentElement.style.setProperty("--glow",config.accent+"44");
+ document.getElementById("assistantName").value=config.name;
+ document.getElementById("welcomeDisplay").textContent=config.welcome;
+ document.getElementById("date").textContent=new Date().toLocaleString();
+ document.getElementById("setup").style.display="none";
+ document.getElementById("app").style.display="block";
+ document.title=config.name+" | Personal AI";
+ renderDashboard();
+ renderTracking();
+ renderProjects();
+}
+
+function renderDashboard(){
+ const container=document.getElementById("dashboardCards");
+ container.innerHTML="";
+ const descriptions={
+  "System status":"JARVIS interface is running.",
+  "Recent activity":"Your activity panel is ready.",
+  "Quick notes":"Your notes panel is ready.",
+  "Project overview":"Manage your personal projects.",
+  "Voice controls":"Voice features available in your browser.",
+  "Tracking overview":"Your selected tracking categories."
+ };
+ config.panels.forEach(panel=>{
+  const card=document.createElement("div");
+  card.className="panel trackcard";
+  const strong=document.createElement("strong");
+  strong.textContent=panel;
+  const p=document.createElement("div");
+  p.className="small";p.textContent=descriptions[panel]||"Custom dashboard panel.";
+  card.append(strong,p);container.append(card);
+ });
+}
+
+function renderTracking(){
+ const container=document.getElementById("trackingCards");
+ container.innerHTML="";
+ config.tracking.forEach(item=>{
+  const card=document.createElement("div");
+  card.className="panel trackcard";
+  const strong=document.createElement("strong");
+  strong.textContent=item;
+  const p=document.createElement("div");
+  p.className="small";
+  p.textContent="Tracking category enabled";
+  card.append(strong,p);container.append(card);
+ });
+}
+
+function showSection(id,button){
+ document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+ document.getElementById(id).classList.add("active");
+ document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
+ button.classList.add("active");
+}
+
+function speak(text){
+ if(!config.speak||!window.speechSynthesis)return;
+ speechSynthesis.cancel();
+ const utterance=new SpeechSynthesisUtterance(text);
+ utterance.rate=Number(config.speed)||.95;
+ const index=config.voice;
+ if(index!==""&&voices[Number(index)])utterance.voice=voices[Number(index)];
+ speechSynthesis.speak(utterance);
+}
+
+function testVoice(){
+ const voice=document.getElementById("voiceSelect").value;
+ const utterance=new SpeechSynthesisUtterance("Good evening. I am ready to assist you.");
+ utterance.rate=Number(document.getElementById("speed").value);
+ if(voice!==""&&voices[Number(voice)])utterance.voice=voices[Number(voice)];
+ speechSynthesis.cancel();speechSynthesis.speak(utterance);
+}
+
+function addMessage(text,type){
+ const div=document.createElement("div");
+ div.className="message "+(type||"");
+ div.textContent=text;
+ const chat=document.getElementById("chat");
+ chat.append(div);chat.scrollTop=chat.scrollHeight;
+}
+
+function sendMessage(){
+ const input=document.getElementById("command");
+ const value=input.value.trim();
+ if(!value)return;
+ input.value="";
+ addMessage(value,"user");
+ const c=value.toLowerCase();
+ let answer;
+ if(c.includes("hello")||c.includes("hi")){
+  answer="Hello. "+config.name+" is online. How may I assist you?";
+ }else if(c.includes("your name")){
+  answer="I am "+config.name+", your personal assistant.";
+ }else if(c.includes("time")){
+  answer="The current time is "+new Date().toLocaleTimeString()+".";
+ }else if(c.includes("date")){
+  answer="Today's date is "+new Date().toLocaleDateString()+".";
+ }else if(c.includes("status")){
+  answer="Your JARVIS interface is online. Advanced AI services are not connected yet.";
+ }else if(c.includes("project")){
+  answer="You currently have "+projects.length+" saved projects.";
+ }else if(c.includes("help")){
+  answer="You can ask me for the date, time, system status, or project count. More advanced AI capabilities are coming.";
+ }else{
+  answer="I have received your request. My advanced AI brain has not been connected yet. This is currently the local command system.";
+ }
+ addMessage(answer,"");
+ speak(answer);
+}
+
+document.getElementById("command").addEventListener("keydown",e=>{
+ if(e.key==="Enter")sendMessage();
+});
+
+function listen(){
+ const Recognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!Recognition){
+  alert("Speech recognition is not supported in this browser.");return;
+ }
+ const recognition=new Recognition();
+ recognition.lang="en-US";
+ recognition.onstart=()=>document.getElementById("assistantStatus").textContent="Listening...";
+ recognition.onresult=e=>{
+  document.getElementById("command").value=e.results[0][0].transcript;
+  sendMessage();
+ };
+ recognition.onerror=()=>document.getElementById("assistantStatus").textContent="Voice recognition unavailable.";
+ recognition.onend=()=>document.getElementById("assistantStatus").textContent="Ready for commands.";
+ recognition.start();
+}
+
+function addProject(){
+ const input=document.getElementById("projectInput");
+ const value=input.value.trim();
+ if(!value)return;
+ projects.push(value);
+ try{localStorage.setItem("jarvis_projects",JSON.stringify(projects));}
+ catch(e){alert("Could not save project.");return;}
+ input.value="";renderProjects();
+}
+
+function renderProjects(){
+ const list=document.getElementById("projectList");
+ list.innerHTML="";
+ projects.forEach((project,i)=>{
+  const row=document.createElement("div");
+  row.className="choice";
+  const name=document.createElement("span");
+  name.style.flex="1";name.textContent=project;
+  const remove=document.createElement("button");
+  remove.className="danger";remove.textContent="REMOVE";
+  remove.onclick=()=>{
+   projects.splice(i,1);
+   localStorage.setItem("jarvis_projects",JSON.stringify(projects));
+   renderProjects();
+  };
+  row.append(name,remove);list.append(row);
+ });
+}
+
+function editSetup(){
+ document.getElementById("setup").style.display="block";
+ document.getElementById("app").style.display="none";
+ step=0;
+ populateSetup();
+ updateWizard();
+}
+
+function populateSetup(){
+ document.getElementById("assistantName").value=config.name;
+ document.getElementById("bgColor").value=config.bg;
+ document.getElementById("accentColor").value=config.accent;
+ document.getElementById("speed").value=config.speed;
+ document.getElementById("personality").value=config.personality;
+ document.getElementById("welcome").value=config.welcome;
+ document.getElementById("speakEnabled").checked=config.speak;
+ selectedPreset=config.preset;
+ customCategories=[...config.customCategories];
+ renderChoices();
+ document.querySelectorAll(".track-option").forEach(x=>x.checked=config.tracking.includes(x.value));
+ document.querySelectorAll(".panel-option").forEach(x=>x.checked=config.panels.includes(x.value));
+ loadVoices();
+ document.getElementById("voiceSelect").value=config.voice;
+}
+
+function resetSetup(){
+ if(!confirm("Reset all JARVIS settings on this browser?"))return;
+ localStorage.removeItem("jarvis_config_v2");
+ localStorage.removeItem("jarvis_projects");
+ location.reload();
+}
+
+try{
+ const saved=localStorage.getItem("jarvis_config_v2");
+ if(saved){
+  config=JSON.parse(saved);
+  if(config&&Array.isArray(config.tracking)&&Array.isArray(config.panels)){
+   customCategories=config.customCategories||[];
+   projects=JSON.parse(localStorage.getItem("jarvis_projects")||"[]");
+   applyConfig();
+  }
+ }
+}catch(e){
+ console.error("JARVIS settings could not be loaded.",e);
+}
+</script>
+</body>
+</html>
